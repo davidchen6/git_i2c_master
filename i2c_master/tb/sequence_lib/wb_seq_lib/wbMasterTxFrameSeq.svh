@@ -18,7 +18,7 @@ endfunction
 task wbMasterTxFrameSeq::body;
  super.body;
 
- m_wbIf.frameType = "Master TX";
+ wb3_vif.frameType = "Master TX";
 
 
  `uvm_info(m_name, $psprintf("START wbMasterTxFrameSeq. Length = ",m_frameLength), UVM_LOW)
@@ -29,12 +29,12 @@ task wbMasterTxFrameSeq::body;
 
   case (m_frameState) 
    START : begin
-    m_wbIf.frameState = "START";
+    wb3_vif.frameState = "START";
     sendStart;
     m_frameState = ADDRESS;
    end
    ADDRESS : begin
-    m_wbIf.frameState = "ADDRESS";
+    wb3_vif.frameState = "ADDRESS";
     sendAddress(.rwb(1'b0)); //WR
     if (m_arbitrationLost) begin
      m_frameState = FINISHED;
@@ -46,7 +46,7 @@ task wbMasterTxFrameSeq::body;
     end
    end
    DATA : begin
-    m_wbIf.frameState = "DATA";
+    wb3_vif.frameState = "DATA";
     //m_data  = $urandom_range(255,0);
     m_data  = m_frameData[m_byteNumber];
 //    m_wb_seq_item.data[7:0] = m_data;
@@ -60,7 +60,7 @@ task wbMasterTxFrameSeq::body;
     end  
    end
    ACK : begin
-    m_wbIf.frameState = "ACK";
+    wb3_vif.frameState = "ACK";
     if (m_ack) begin
      m_frameState = STOP;
     end else if (m_byteNumber==m_frameLength-1) begin
@@ -71,7 +71,7 @@ task wbMasterTxFrameSeq::body;
     end
    end
    STOP : begin
-    m_wbIf.frameState = "STOP";
+    wb3_vif.frameState = "STOP";
     if (m_relinquishBus) begin
      //Send STOP
      //If the frame is only one byte long and the slave sent
@@ -81,7 +81,7 @@ task wbMasterTxFrameSeq::body;
     m_frameState = FINISHED;    
    end
    FINISHED : begin
-    m_wbIf.frameState = "FINISHED";
+    wb3_vif.frameState = "FINISHED";
     break;
    end
    default : begin
@@ -93,7 +93,7 @@ task wbMasterTxFrameSeq::body;
  end //forever
 
  `uvm_info(m_name, $psprintf("FINISHED wbMasterTxFrameSeq. Length = ",m_frameLength), UVM_LOW)
- m_wbIf.comment = "FINISHED";
+ wb3_vif.comment = "FINISHED";
 
 endtask
 

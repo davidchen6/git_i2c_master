@@ -42,13 +42,59 @@ class i2c_slave_driver extends uvm_driver#(i2c_transaction);
 endclass
 
 task i2c_slave_driver::run_phase(uvm_phase phase);
-    $display({"run phase for: ", get_full_name()});
-   while(vif.rst)
-      @(posedge vif.clk);
-   while(1) begin
-      seq_item_port.get_next_item(req);
-      seq_item_port.item_done();
-   end
+   logic           enable_slave  = 0;
+   int             thread_number = 0;
+   process         thread_process[$];
+   e_i2c_direction transaction_direction;
+  
+   $display({"run phase for: ", get_full_name()});
+   super.run_phase(phase);
+   start_detection = 1'b0; 
+
+   // setup and calculate values which need to computed once per simulation
+   common_mthds.calculate_input_clock_period();
+   number_of_clocks_for_t_hd_dat_max = common_mthds.calculate_number_of_clocks_for_time( .time_value(cfg.t_hd_dat_max) );
+
+   fork
+     forever common_mthds.drive_x_to_outputs_during_reset();
+	 forever slave_search_for_start_condition( .phase(phase) );
+	 forever slave_search_for_stop_condition(  .phase(phase) );
+	 forever begin
+	   fork
+	     begin //response to request thread
+		   thread_process[thread_number] = process::self();
+		   wait(start_detection_e.triggered);
+		   slave_address_is_to_this_slave(.address_is_for_slave(enable_slave));
+
+		   if (enable_slave) begin
+		     slave_get_read_write( .transaction_direction(transaction_direction) );
+			 send_ack();
+
+			 case (transaction_direction)
+	           I2C_DIR_WRITE : slave_write_request();
+               I2C_DIR_READ  : slave_read_request();
+			   default   : `uvm_fatal(get_type_name(),  $sformatf("Slave read / write request unknown!") )
+			 endcase
+		   end
+		 end
+		 
+		 begin // start event is detected, wait for stop or repeated start to end this thread.
+		   //grab the current thread number since the thread number can increment if the response thread terminates naturally.		   //
+		   int wait_for_thread_number = thread_number;
+		   wait(start_detection_e.triggered);
+#1; //wait so start event is no longer triggered
+		   wait(stop_detection_e.triggered || start_detection_e.triggered);
+
+		   if(start_detection_e.triggered) phase.drop_objection(this); //continuous start only, stop already drops objection 
+		   if (thread_process[wait_for_thread_number].status != process::FINISHED) thread_process[wait_for_thread_number].kill();
+
+		 end
+	   join_any
+
+	   thread_number ++; // increment the thread number for next threads spawning
+	 end
+   join
+
 endtask
 
 task i2c_slave_driver::slave_search_for_start_condition(uvm_phase phase);

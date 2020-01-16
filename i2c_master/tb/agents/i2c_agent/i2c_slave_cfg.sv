@@ -20,6 +20,8 @@ class i2c_slave_cfg extends i2c_cfg;
   // allows before returning a NACK.
   rand int max_read_word_access_before_nack;
    
+  virtual i2c_interface i2c_s_vif;
+
   `uvm_object_utils_begin(i2c_slave_cfg)
     `uvm_field_int(slave_address,                     UVM_ALL_ON)
     `uvm_field_int(max_write_word_access_before_nack, UVM_ALL_ON)

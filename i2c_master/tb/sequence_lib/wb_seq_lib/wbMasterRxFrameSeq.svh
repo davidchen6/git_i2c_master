@@ -16,19 +16,19 @@ endfunction
 task wbMasterRxFrameSeq::body;
  super.body;
 
- m_wbIf.frameType = "Master RX";
+ wb3_vif.frameType = "Master RX";
 
  forever begin
 
   case (m_frameState) 
    START : begin
-    //m_wbIf.frameState = "START";
+    //wb3_vif.frameState = "START";
     //sendStart;
     //m_frameState = ADDRESS;
     m_frameState = ADDRESS;
    end
    ADDRESS : begin
-    m_wbIf.frameState = "ADDRESS";
+    wb3_vif.frameState = "ADDRESS";
     sendAddress(.rwb(1'b1)); //RD
     if (m_arbitrationLost) begin
      m_frameState = FINISHED;
@@ -41,7 +41,7 @@ task wbMasterRxFrameSeq::body;
     end
    end
    DATA : begin
-    m_wbIf.frameState = "DATA";
+    wb3_vif.frameState = "DATA";
     if(m_byteNumber==m_frameLength-1) begin
      rcvDataNack;
      m_frameState = STOP;
@@ -56,7 +56,7 @@ task wbMasterRxFrameSeq::body;
     `uvm_fatal(m_name,"illegal state : ACK.")   
    end
    STOP : begin
-    m_wbIf.frameState = "STOP";
+    wb3_vif.frameState = "STOP";
     if (m_relinquishBus) begin
      //Send STOP
      //If the frame is only one byte long and the slave sent
@@ -66,7 +66,7 @@ task wbMasterRxFrameSeq::body;
     m_frameState = FINISHED;    
    end
    FINISHED : begin
-    m_wbIf.frameState = "FINISHED";
+    wb3_vif.frameState = "FINISHED";
     break;
    end
    default : begin
@@ -76,7 +76,7 @@ task wbMasterRxFrameSeq::body;
 
  end //forever
 
- m_wbIf.comment = "FINISHED";
+ wb3_vif.comment = "FINISHED";
 
 endtask
 

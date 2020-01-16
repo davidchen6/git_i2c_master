@@ -2,6 +2,7 @@
 `define WB3_AGENT__SV
 
 class wb3_agent extends uvm_agent ;
+   wb3_agent_cfg wb3_cfg;
    wb3_sequencer  sqr;
    wb3_driver     drv;
 //   wb3_monitor    mon;

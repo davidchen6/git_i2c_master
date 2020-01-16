@@ -35,7 +35,7 @@ class wbFrameSeq extends uvm_sequence#(wb_transaction);
  bit[7:0]        m_status=0;
  bit[15:0]       m_prescale;
  wb3_agent_cfg m_wb_agent_config;
- virtual wb3_interface    m_wbIf;
+ virtual wb3_interface    wb3_vif;
  ui              m_wbFrequency;
  ui              m_sclFrequency;
  static bit      m_dutInitialised = 0;
@@ -76,7 +76,7 @@ task wbFrameSeq::body;
  //Get config
  if (!uvm_config_db#(wb_agent_config)::get(m_sequencer, "", "wb3_agent_cfg", m_wb_agent_config))
   `uvm_fatal(m_name, "Could not get handle for wb_agent_config.")
- m_wbIf = m_wb_agent_config.m_wbIf;
+ wb3_vif = m_wb_agent_config.wb3_vif;
  
  m_wbFrequency  = m_wb_agent_config.m_wbFrequency;  //kHz
  m_sclFrequency = m_wb_agent_config.m_sclFrequency;  //kHz 
@@ -87,7 +87,7 @@ task wbFrameSeq::body;
 
  m_byteNumber = 0;
  if (m_frameLength==0) begin
-  m_wbIf.frameState = "FINISHED";
+  wb3_vif.frameState = "FINISHED";
   return;
  end
  m_frameState = START;
@@ -98,11 +98,11 @@ task wbFrameSeq::setupDut;
 
  `uvm_info(m_name, "Wishbone setupDut.", UVM_LOW)
 
- m_wbIf.comment = "setupDut";
+ wb3_vif.comment = "setupDut";
 
  //Wait for end of reset.
- wait(!m_wbIf.rst);
- repeat(10) @(posedge m_wbIf.clk);
+ wait(!wb3_vif.rst);
+ repeat(10) @(posedge wb3_vif.clk);
 
  //Clock pre-scaler.
 
@@ -112,26 +112,26 @@ task wbFrameSeq::setupDut;
  m_prescale      = (m_wbFrequency*10**3) / (5*m_sclFrequency*10**3) - 1;
  //Write low byte
  p_sequencer.p_rm.rPRERlo.write(status, m_prescale[7:0], UVM_FRONTDOOR);
- //repeat(1) @(posedge m_wbIf.clk);
+ //repeat(1) @(posedge wb3_vif.clk);
  //Write high byte
  p_sequencer.p_rm.rPRERhi.write(status, m_prescale[15:8], UVM_FRONTDOOR);
- //repeat(1) @(posedge m_wbIf.clk);
+ //repeat(1) @(posedge wb3_vif.clk);
 
  //Enable device
  value      = 8'h0;
  value[7]   = 1'b1; //Enable core
  value[6]   = 1'b1; //Enable interrupt
  p_sequencer.p_rm.rCTR.write(status, value, UVM_FRONTDOOR);
- //repeat(1) @(posedge m_wbIf.clk);
+ //repeat(1) @(posedge wb3_vif.clk);
 
  m_dutInitialised = 1;
 
 endtask
 
 task wbFrameSeq::waitInterrupt;
- m_wbIf.comment = "waitInterrupt";
+ wb3_vif.comment = "waitInterrupt";
 
- wait(m_wbIf.inta);
+ wait(wb3_vif.inta);
 
  //Read Status Register
  p_sequencer.p_rm.rSR.read(status, value, UVM_FRONTDOOR);
@@ -144,14 +144,14 @@ task wbFrameSeq::waitInterrupt;
  value[0]   = 1'b1;
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
 
- wait(!m_wbIf.inta);
+ wait(!wb3_vif.inta);
 
 endtask
 
 task wbFrameSeq::sendStart;
  `uvm_info(m_name, "Wishbone sendStart.", UVM_LOW)
 
- m_wbIf.comment = "sendStart";
+ wb3_vif.comment = "sendStart";
 
  //Set WR and STA bits
  value = 8'h0;
@@ -159,15 +159,15 @@ task wbFrameSeq::sendStart;
  value[4] = 1'b1; //WR
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
 
- m_wbIf.comment = "";
+ wb3_vif.comment = "";
 
 endtask
 
 task wbFrameSeq::sendAddress(bit rwb);
  `uvm_info(m_name, "Start wishbone sendAddress.", UVM_LOW)
 
- m_wbIf.comment = "sendAddress";
- m_wbIf.data    = $psprintf("%h",{m_iicAddress,rwb});
+ wb3_vif.comment = "sendAddress";
+ wb3_vif.data    = $psprintf("%h",{m_iicAddress,rwb});
 
  //Write slave address to Transmit Register
  value[7:1] = m_iicAddress;
@@ -183,7 +183,7 @@ task wbFrameSeq::sendAddress(bit rwb);
 
  waitInterrupt;  //Also reads status register.
 
- m_wbIf.comment = "";
+ wb3_vif.comment = "";
 
  `uvm_info(m_name, "Finished wishbone sendAddress.", UVM_LOW)
 
@@ -193,9 +193,9 @@ task wbFrameSeq::sendData;
 
  `uvm_info(m_name, "Wishbone sendData.", UVM_LOW)
 
- m_wbIf.comment = "sendData";
+ wb3_vif.comment = "sendData";
  //value = m_wb_tr.data;
- m_wbIf.data    = $psprintf("%h",value);
+ wb3_vif.data    = $psprintf("%h",value);
 
  m_data                  = value;
  p_sequencer.p_rm.rTXR.write(status, value, UVM_FRONTDOOR);
@@ -207,7 +207,7 @@ task wbFrameSeq::sendData;
 
  waitInterrupt; //Also reads status register.
 
- m_wbIf.comment = "";
+ wb3_vif.comment = "";
 
 endtask
 
@@ -215,8 +215,8 @@ task wbFrameSeq::sendStop;
 
  `uvm_info(m_name, "Wishbone sendStop.", UVM_LOW)
 
- m_wbIf.comment = "sendStop";
- //m_wbIf.data    = $psprintf("%h",value);
+ wb3_vif.comment = "sendStop";
+ //wb3_vif.data    = $psprintf("%h",value);
 
  //m_data                  = value;
 
@@ -239,7 +239,7 @@ task wbFrameSeq::rcvDataNack;
 
  //Read data received.
  p_sequencer.p_rm.rRXR.read(status, value, UVM_FRONTDOOR);
- m_wbIf.comment = "";
+ wb3_vif.comment = "";
 
 endtask
 
@@ -254,7 +254,7 @@ task wbFrameSeq::rcvDataAck;
 
  //Read data received.
  p_sequencer.p_rm.rRXR.read(status, value, UVM_FRONTDOOR);
- m_wbIf.comment = "";
+ wb3_vif.comment = "";
 
 endtask
 

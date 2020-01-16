@@ -4,6 +4,7 @@
 class i2c_slave_agent extends uvm_agent ;
    i2c_sequencer  sqr;
    i2c_slave_driver     drv;
+   i2c_slave_cfg i2c_slv_cfg;
 //   i2c_monitor    mon;
    
 //   uvm_analysis_port #(i2c_transaction)  ap;
@@ -24,6 +25,7 @@ function void i2c_slave_agent::build_phase(uvm_phase phase);
    if (is_active == UVM_ACTIVE) begin
       sqr = i2c_sequencer::type_id::create("sqr", this);
       drv = i2c_slave_driver::type_id::create("drv", this);
+	  drv.cfg = i2c_slv_cfg; 
    end
   // mon = i2c_monitor::type_id::create("mon", this);
 endfunction 

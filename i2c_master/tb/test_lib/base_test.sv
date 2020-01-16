@@ -3,10 +3,17 @@
 
 class base_test extends uvm_test;
 
+   i2c_env_cfg env_cfg;
    i2c_env         env;
    i2c_vsqr        v_sqr;
    reg_model       rm;
    wb3_i2c_adapter     reg_sqr_adapter;
+
+   virtual i2c_interface i2c_s_vif;
+   virtual wb3_interface wb3_vif;
+
+   i2c_slave_cfg i2c_slv_cfg;
+   wb3_agent_cfg wb3_cfg;
 
    function new(string name = "base_test", uvm_component parent = null);
       super.new(name,parent);
@@ -21,6 +28,21 @@ endclass
 
 function void base_test::build_phase(uvm_phase phase);
    super.build_phase(phase);
+   if (!uvm_config_db#(virtual i2c_interface)::get(this, "", "i2c_vif", i2c_s_vif))
+     `uvm_fatal("base_test", "Could not get i2c interface handel")
+   if (!uvm_config_db#(virtual wb3_interface)::get(this, "", "wb3_vif", wb3_vif))
+     `uvm_fatal("base_test", "Could not get wb3 interface handel")
+
+   i2c_slv_cfg = i2c_slave_cfg::type_id::create("i2c_slv_cfg");
+   i2c_slv_cfg.randomize();
+   i2c_slv_cfg.i2c_s_vif = i2c_s_vif;
+   wb3_cfg = wb3_agent_cfg::type_id::create("wb3_cfg");
+   wb3_cfg.wb3_vif = wb3_vif;
+   env_cfg = i2c_env_cfg::type_id::create("env_cfg");
+   env_cfg.i2c_slv_cfg = i2c_slv_cfg;
+   env_cfg.wb3_cfg = wb3_cfg;
+   uvm_config_db#(i2c_env_cfg)::set(this, "env", "env_cfg", env_cfg);
+
    env  =  i2c_env::type_id::create("env", this); 
    v_sqr =  i2c_vsqr::type_id::create("v_sqr", this);
    rm = reg_model::type_id::create("rm", this);
@@ -34,7 +56,7 @@ endfunction
 
 function void base_test::connect_phase(uvm_phase phase);
    super.connect_phase(phase);
-   v_sqr.p_i2c_sqr = env.i_agt.sqr;
+   v_sqr.p_i2c_sqr = env.i2c_slv_agt.sqr;
    v_sqr.p_wb3_sqr = env.wb3_agt.sqr;
    v_sqr.p_rm = this.rm;
    rm.default_map.set_sequencer(env.wb3_agt.sqr, reg_sqr_adapter);

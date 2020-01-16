@@ -10,7 +10,7 @@ class wb3_agent_cfg extends uvm_object;
   // Variables: is_active
   // Agent can be defined passive or active.
   rand uvm_active_passive_enum is_active;
-  virtual wb3_interface    m_wbIf;
+  virtual wb3_interface    wb3_vif;
   int unsigned m_wbFrequency;   //kHz
   int unsigned m_sclFrequency;   //kHz
   
