@@ -175,7 +175,15 @@ class reg_SR extends uvm_reg;
         super.new(name, 8, UVM_NO_COVERAGE);
     endfunction
 endclass
-
+/* ****** reg address map ******
+`define PRERlo_REG_ADDR    3'h0
+`define PRERhi_REG_ADDR    3'h1
+`define CTR_REG_ADDR       3'h2
+`define TXR_REG_ADDR       3'h3
+`define RXR_REG_ADDR       3'h3
+`define CR_REG_ADDR        3'h4
+`define SR_REG_ADDR        3'h4
+*******************************/
 class reg_model extends uvm_reg_block;
    rand reg_PRERlo rPRERlo;
    rand reg_PRERhi rPRERhi;
@@ -211,17 +219,17 @@ class reg_model extends uvm_reg_block;
       rRXR = reg_RXR::type_id::create("rRXR", , get_full_name());
       rRXR.configure(this, null, "");
       rRXR.build();
-      default_map.add_reg(rRXR, 'h4, "RO");
+      default_map.add_reg(rRXR, 'h3, "RO");
 
       rCR = reg_CR::type_id::create("rCR", , get_full_name());
       rCR.configure(this, null, "");
       rCR.build();
-      default_map.add_reg(rCR, 'h5, "WO");
+      default_map.add_reg(rCR, 'h4, "WO");
 
       rSR = reg_SR::type_id::create("rSR", , get_full_name());
       rSR.configure(this, null, "");
       rSR.build();
-      default_map.add_reg(rSR, 'h6, "RO");
+      default_map.add_reg(rSR, 'h4, "RO");
 
    endfunction
 

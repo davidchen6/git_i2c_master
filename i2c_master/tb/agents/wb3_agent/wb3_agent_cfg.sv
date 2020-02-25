@@ -1,7 +1,7 @@
 `ifndef WB3_AGENT_CFG__SV
 `define WB3_AGENT_CFG__SV
 
-`include "tb_defines.sv"
+//`include "tb_defines.sv"
 
 // Class: wb3_agent_cfg
 // Wishbone master agent configuration class. 

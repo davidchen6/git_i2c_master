@@ -30,7 +30,7 @@ task wbMasterTxFrameSeq::body;
   case (m_frameState) 
    START : begin
     wb3_vif.frameState = "START";
-    sendStart;
+//    sendStart;
     m_frameState = ADDRESS;
    end
    ADDRESS : begin

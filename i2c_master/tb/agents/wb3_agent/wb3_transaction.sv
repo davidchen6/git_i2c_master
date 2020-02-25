@@ -1,7 +1,7 @@
 `ifndef WB3_TRANSACTION__SV
 `define WB3_TRANSACTION__SV
 
-`include "tb_defines.sv"
+//`include "tb_defines.sv"
 typedef enum{BUS_RD, BUS_WR} bus_op_e;
 
 class wb3_transaction extends uvm_sequence_item;

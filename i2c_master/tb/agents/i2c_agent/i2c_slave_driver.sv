@@ -10,6 +10,8 @@ class i2c_slave_driver extends uvm_driver#(i2c_transaction);
    bit   [7:0]         data[int]; //associative array so it can be allocated on the fly
    bit                 start_detection;
 
+   uvm_analysis_port #(bit[8:0]) slv_ap;
+
    event               start_detection_e;
    event               stop_detection_e;
 
@@ -27,12 +29,13 @@ class i2c_slave_driver extends uvm_driver#(i2c_transaction);
 
 	  common_mthds = i2c_common_methods::type_id::create("common_mthds", this);
       common_mthds.vif = vif;
+	  slv_ap = new("slv_ap", this);
    endfunction
 
    extern virtual task run_phase(uvm_phase phase);
    extern virtual task slave_search_for_start_condition(uvm_phase phase);
    extern virtual task slave_search_for_stop_condition(uvm_phase phase);
-   extern virtual task slave_address_is_to_this_slave(output logic address_is_for_salve);
+   extern virtual task slave_address_is_to_this_slave(output logic address_is_for_slave);
    extern virtual task slave_get_read_write(output e_i2c_direction transaction_direction); 
    extern virtual task send_ack();
    extern virtual task slave_write_request();
@@ -51,10 +54,12 @@ task i2c_slave_driver::run_phase(uvm_phase phase);
    super.run_phase(phase);
    start_detection = 1'b0; 
 
+   $display({"start run phase for: ", get_full_name()});
    // setup and calculate values which need to computed once per simulation
    common_mthds.calculate_input_clock_period();
    number_of_clocks_for_t_hd_dat_max = common_mthds.calculate_number_of_clocks_for_time( .time_value(cfg.t_hd_dat_max) );
 
+   `uvm_info(get_type_name(), "started run phase for slave_driver ", UVM_HIGH)
    fork
      forever common_mthds.drive_x_to_outputs_during_reset();
 	 forever slave_search_for_start_condition( .phase(phase) );
@@ -69,6 +74,7 @@ task i2c_slave_driver::run_phase(uvm_phase phase);
 		   if (enable_slave) begin
 		     slave_get_read_write( .transaction_direction(transaction_direction) );
 			 send_ack();
+			 slv_ap.write({1'b1, 8'b0});
 
 			 case (transaction_direction)
 	           I2C_DIR_WRITE : slave_write_request();
@@ -119,10 +125,10 @@ task i2c_slave_driver::slave_search_for_stop_condition(uvm_phase phase);
 endtask
 
 //------------------------------------------------------------------------//
-task i2c_slave_driver::slave_address_is_to_this_slave(output logic address_is_for_salve);
+task i2c_slave_driver::slave_address_is_to_this_slave(output logic address_is_for_slave);
 
    address               = '0;
-   address_is_for_salve  =  0; 
+   address_is_for_slave  =  0; 
    `uvm_info(get_type_name(),  $sformatf("Beginning address identification"), UVM_HIGH )
 	    
    // get address
@@ -131,7 +137,7 @@ task i2c_slave_driver::slave_address_is_to_this_slave(output logic address_is_fo
       address = { address[8:0], vif.sda };
    end
 
-   if (address === cfg.slave_address) address_is_for_salve = 1;
+   if (address === cfg.slave_address) address_is_for_slave = 1;
 
 endtask: slave_address_is_to_this_slave
 
@@ -157,6 +163,7 @@ task i2c_slave_driver::slave_write_request();
       end
       data[address++] = input_data;
       send_ack();
+	  slv_ap.write({1'b0, input_data});
       num_of_accesses++;
    end
 				    
@@ -188,6 +195,7 @@ task i2c_slave_driver::slave_read_request();
 															      
       current_address++;
       wait_for_ack_from_master( .ack(ack_from_master) );
+	  slv_ap.write({1'b0, data_to_transmit});
    end 
    while(ack_from_master);
 																		    

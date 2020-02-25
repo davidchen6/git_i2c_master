@@ -5,7 +5,7 @@
 `ifndef WB3_INTERFACE__SV
 `define WB3_INTERFACE__SV
 
-`include "tb_defines.sv"
+//`include "tb_defines.sv"
 interface wb3_interface(input logic clk, logic rst);
 
   logic arst;

@@ -71,13 +71,17 @@ endfunction: calculate_number_of_clocks_for_time
 task i2c_common_methods::drive_x_to_outputs_during_reset();
 
   wait(vif.rst === 1'b1);
-  vif.scl <= 'x;
-  vif.sda <= 'x;
+  vif.scl_out <= 'x;
+  vif.sda_out <= 'x;
+  `uvm_info(get_type_name(), "i2c slave is in reset.", UVM_HIGH)
 
   wait(vif.rst === 1'b0);
-  vif.scl <= 1'b1;
-  vif.sda <= 1'b1;
+  //vif.scl <= 1'b1;
+  //vif.sda <= 1'b1;
+  vif.scl_out <= 1'b1;
+  vif.sda_out <= 1'b1;
 
+  `uvm_info(get_type_name(), "i2c slave is out of reset.", UVM_HIGH)
 endtask:drive_x_to_outputs_during_reset
 
 //------------------------------------------------------------------------//

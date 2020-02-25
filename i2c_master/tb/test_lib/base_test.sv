@@ -38,10 +38,13 @@ function void base_test::build_phase(uvm_phase phase);
    i2c_slv_cfg.i2c_s_vif = i2c_s_vif;
    wb3_cfg = wb3_agent_cfg::type_id::create("wb3_cfg");
    wb3_cfg.wb3_vif = wb3_vif;
+   wb3_cfg.m_wbFrequency = 50000;
+   wb3_cfg.m_sclFrequency = 50;
    env_cfg = i2c_env_cfg::type_id::create("env_cfg");
    env_cfg.i2c_slv_cfg = i2c_slv_cfg;
    env_cfg.wb3_cfg = wb3_cfg;
    uvm_config_db#(i2c_env_cfg)::set(this, "env", "env_cfg", env_cfg);
+   uvm_config_db#(wb3_agent_cfg)::set(this, "env.wb3_agt.sqr.*", "wb3_agent_cfg", wb3_cfg);
 
    env  =  i2c_env::type_id::create("env", this); 
    v_sqr =  i2c_vsqr::type_id::create("v_sqr", this);

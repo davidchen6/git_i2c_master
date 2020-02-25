@@ -7,7 +7,7 @@ class wb3_agent extends uvm_agent ;
    wb3_driver     drv;
 //   wb3_monitor    mon;
    
-   //uvm_analysis_port #(wb3_transaction)  ap;
+   uvm_analysis_port #(bit[8:0])  ap;
    
    function new(string name, uvm_component parent);
       super.new(name, parent);
@@ -34,7 +34,7 @@ function void wb3_agent::connect_phase(uvm_phase phase);
    if (is_active == UVM_ACTIVE) begin
       drv.seq_item_port.connect(sqr.seq_item_export);
    end
-   //ap = mon.ap;
+   ap = sqr.m_ap;
    $display("connect phase for: ", get_full_name());
 endfunction
 

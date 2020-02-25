@@ -1,9 +1,8 @@
 `ifndef WBFRAMESEQ__SVH
 `define WBFRAMESEQ__SVH
 
-`include "tb_defines.sv"
-class wbFrameSeq extends uvm_sequence#(wb_transaction);
- `uvm_object_utils(wbFrameSeq)
+//`include "tb_defines.sv"
+class wbFrameSeq extends uvm_sequence#(wb3_transaction);
 /*
 `define PRERlo_REG_ADDR    3'h0
 `define PRERhi_REG_ADDR    3'h1
@@ -15,7 +14,7 @@ class wbFrameSeq extends uvm_sequence#(wb_transaction);
 */
  typedef enum {START, ADDRESS, DATA, ACK, STOP, FINISHED} frameState_t;
  frameState_t m_frameState;
- `uvm_declare_p_sequencer(i2c_vsqr)
+ `uvm_declare_p_sequencer(wb3_sequencer)
  //// Data
  //
 
@@ -41,6 +40,11 @@ class wbFrameSeq extends uvm_sequence#(wb_transaction);
  static bit      m_dutInitialised = 0;
  bit             m_arbitrationLost=0;
  
+ `uvm_object_utils_begin(wbFrameSeq)
+	`uvm_field_int(m_frameLength, UVM_ALL_ON)
+	`uvm_field_int(m_relinquishBus, UVM_ALL_ON)
+ `uvm_object_utils_end
+
  uvm_status_e   status = 0;
  uvm_reg_data_t value = 0;
  wb3_sequencer    m_localSequencer;        
@@ -59,7 +63,9 @@ class wbFrameSeq extends uvm_sequence#(wb_transaction);
 
  ////Constraints
  //
- constraint c_frameLength  {m_frameLength inside {[2:MAXFRAMELENGTH]}; }
+ constraint c_frameLength  {m_frameLength inside {[2:10]}; }
+ //constraint c_frameLength  {m_frameLength inside {[2:MAXFRAMELENGTH]}; }
+ constraint c_relinquishBus {m_relinquishBus==1;}
 
 endclass
 
@@ -74,8 +80,9 @@ task wbFrameSeq::body;
  $cast(m_localSequencer, m_sequencer);
 
  //Get config
- if (!uvm_config_db#(wb_agent_config)::get(m_sequencer, "", "wb3_agent_cfg", m_wb_agent_config))
-  `uvm_fatal(m_name, "Could not get handle for wb_agent_config.")
+ //if (!uvm_config_db#(wb3_agent_cfg)::get(m_sequencer, "", "wb3_agent_cfg", m_wb_agent_config))
+ if (!uvm_config_db#(wb3_agent_cfg)::get(null, get_full_name(), "wb3_agent_cfg", m_wb_agent_config))
+  `uvm_fatal(m_name, "Could not get handle for wb3_agent_config.")
  wb3_vif = m_wb_agent_config.wb3_vif;
  
  m_wbFrequency  = m_wb_agent_config.m_wbFrequency;  //kHz
@@ -112,9 +119,11 @@ task wbFrameSeq::setupDut;
  m_prescale      = (m_wbFrequency*10**3) / (5*m_sclFrequency*10**3) - 1;
  //Write low byte
  p_sequencer.p_rm.rPRERlo.write(status, m_prescale[7:0], UVM_FRONTDOOR);
+ p_sequencer.p_rm.rPRERlo.read(status, value, UVM_FRONTDOOR);
  //repeat(1) @(posedge wb3_vif.clk);
  //Write high byte
  p_sequencer.p_rm.rPRERhi.write(status, m_prescale[15:8], UVM_FRONTDOOR);
+ p_sequencer.p_rm.rPRERhi.read(status, value, UVM_FRONTDOOR);
  //repeat(1) @(posedge wb3_vif.clk);
 
  //Enable device
@@ -122,6 +131,7 @@ task wbFrameSeq::setupDut;
  value[7]   = 1'b1; //Enable core
  value[6]   = 1'b1; //Enable interrupt
  p_sequencer.p_rm.rCTR.write(status, value, UVM_FRONTDOOR);
+ p_sequencer.p_rm.rCTR.read(status, value, UVM_FRONTDOOR);
  //repeat(1) @(posedge wb3_vif.clk);
 
  m_dutInitialised = 1;
@@ -143,6 +153,10 @@ task wbFrameSeq::waitInterrupt;
  value      = 8'h0;
  value[0]   = 1'b1;
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
+ p_sequencer.p_rm.rSR.read(status, value, UVM_FRONTDOOR);
+
 
  wait(!wb3_vif.inta);
 
@@ -158,6 +172,9 @@ task wbFrameSeq::sendStart;
  value[7] = 1'b1; //STA
  value[4] = 1'b1; //WR
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
+ p_sequencer.p_rm.rSR.read(status, value, UVM_FRONTDOOR);
 
  wb3_vif.comment = "";
 
@@ -165,6 +182,7 @@ endtask
 
 task wbFrameSeq::sendAddress(bit rwb);
  `uvm_info(m_name, "Start wishbone sendAddress.", UVM_LOW)
+ $display( "Slave Address is %h.", m_iicAddress);
 
  wb3_vif.comment = "sendAddress";
  wb3_vif.data    = $psprintf("%h",{m_iicAddress,rwb});
@@ -172,14 +190,20 @@ task wbFrameSeq::sendAddress(bit rwb);
  //Write slave address to Transmit Register
  value[7:1] = m_iicAddress;
  value[0]   = rwb;
- m_data                  = value;
+ m_data     = value;
+ $display( "Sent Address is %h.", m_data);
  p_sequencer.p_rm.rTXR.write(status, value, UVM_FRONTDOOR);
+ //3'b011: wb_dat_o <= #1 rxr; // write is transmit register (txr)
+ //p_sequencer.p_rm.rRXR.write(status, value, UVM_FRONTDOOR);
 
  //Set WR and STA bits
  value = 8'h0;
  value[7] = 1'b1; //STA
  value[4] = 1'b1; //WR
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
+ p_sequencer.p_rm.rSR.read(status, value, UVM_FRONTDOOR);
 
  waitInterrupt;  //Also reads status register.
 
@@ -199,11 +223,15 @@ task wbFrameSeq::sendData;
 
  m_data                  = value;
  p_sequencer.p_rm.rTXR.write(status, value, UVM_FRONTDOOR);
+ //3'b011: wb_dat_o <= #1 rxr; // write is transmit register (txr)
+ //p_sequencer.p_rm.rRXR.write(status, value, UVM_FRONTDOOR);
 
  //Set WR bits
  value      = 8'h0;
  value[4]   = 1'b1; //WR
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
 
  waitInterrupt; //Also reads status register.
 
@@ -223,6 +251,8 @@ task wbFrameSeq::sendStop;
  value = 8'h0;
  value[6] = 1'b1; //STO
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
  
  waitInterrupt;  //Also reads status register.
 
@@ -234,6 +264,8 @@ task wbFrameSeq::rcvDataNack;
  value[5] = 1'b1; //RD
  value[3] = 1'b1; //NACK
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
 
  waitInterrupt; //Also reads status register.
 
@@ -249,6 +281,8 @@ task wbFrameSeq::rcvDataAck;
  value[5] = 1'b1; //RD
  value[3] = 1'b0; //ACK
  p_sequencer.p_rm.rCR.write(status, value, UVM_FRONTDOOR);
+ //3'b100: wb_dat_o <= #1 sr;  // write is command register (cr)
+ //p_sequencer.p_rm.rSR.write(status, value, UVM_FRONTDOOR);
 
  waitInterrupt; //Also reads status register.
 

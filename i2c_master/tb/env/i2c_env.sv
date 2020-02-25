@@ -13,6 +13,9 @@ class i2c_env extends uvm_env;
    wb3_agent_cfg wb3_cfg;
    i2c_slave_cfg i2c_slv_cfg;
 
+   uvm_tlm_analysis_fifo #(bit[8:0]) wb3_sqr_scb_fifo;
+   uvm_tlm_analysis_fifo #(bit[8:0]) i2c_drv_scb_fifo;
+
    function new(string name = "i2c_env", uvm_component parent);
       super.new(name, parent);
    endfunction
@@ -34,6 +37,8 @@ class i2c_env extends uvm_env;
       wb3_agt.is_active = UVM_ACTIVE;
       scb = i2c_scoreboard::type_id::create("scb", this);
 
+	  wb3_sqr_scb_fifo = new("wb3_sqr_scb_fifo", this);
+	  i2c_drv_scb_fifo = new("i2c_drv_scb_fifo", this);
    endfunction
 
    extern virtual function void connect_phase(uvm_phase phase);
@@ -43,13 +48,14 @@ endclass
 
 function void i2c_env::connect_phase(uvm_phase phase);
    super.connect_phase(phase);
-  /* i2c_slv_agt.ap.connect(agt_mdl_fifo.analysis_export);
-   mdl.port.connect(agt_mdl_fifo.blocking_get_export);
-   mdl.ap.connect(mdl_scb_fifo.analysis_export);
-   scb.exp_port.connect(mdl_scb_fifo.blocking_get_export);
-   o_agt.ap.connect(agt_scb_fifo.analysis_export);
-   scb.act_port.connect(agt_scb_fifo.blocking_get_export); */
-   scb.p_rm = this.p_rm;
+   //i2c_slv_agt.ap.connect(agt_mdl_fifo.analysis_export);
+   //mdl.port.connect(agt_mdl_fifo.blocking_get_export);
+   wb3_agt.ap.connect(wb3_sqr_scb_fifo.analysis_export);
+   scb.exp_port.connect(wb3_sqr_scb_fifo.blocking_get_export);
+   i2c_slv_agt.ap.connect(i2c_drv_scb_fifo.analysis_export);
+   scb.act_port.connect(i2c_drv_scb_fifo.blocking_get_export); 
+//   scb.p_rm = this.p_rm;
+   wb3_agt.sqr.p_rm = this.p_rm;
 endfunction
 
 `endif

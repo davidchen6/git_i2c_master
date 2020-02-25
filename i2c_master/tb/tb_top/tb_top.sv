@@ -2,13 +2,15 @@
 // include and import uvm_pkg
 //`include "uvm_macros.svh"
 import uvm_pkg::*;
-`include "tb_defines.sv"
+`include "tb_defines_pkg.sv"
 `include "wb3_interface.sv"
 `include "i2c_interface.sv"
 `include "reg_model_pkg.sv"
 `include "wb3_agent_pkg.sv"
 `include "i2c_agent_pkg.sv"
 `include "i2c_env_pkg.sv"
+`include "wb3_seq_pkg.sv"
+`include "test_seq_pkg.sv"
 `include "i2c_test_pkg.sv"
 
 //import apb_test_pkg::*;
@@ -18,27 +20,39 @@ module tb_top;
   bit clk;
   bit rst;
 
-  wire dut_sda_o;
-  wire dut_sda_oe;
+  logic dut_sda_o;
+  logic dut_sda_oe;
   wire dut_sda;
-  wire dut_scl_o;
-  wire dut_scl_oe;
+  logic dut_scl_o;
+  logic dut_scl_oe;
   wire dut_scl;
 
   i2c_interface i2c_s_if(clk, rst);
   wb3_interface wb3_if(clk, rst);
 
-  pullup (dut_scl);
-  pullup (dut_sda);
 
-  bufif0 (dut_scl, i2c_s_if.scl_out, i2c_s_if.scl_oe);
+  /*bufif0 (dut_scl, i2c_s_if.scl_out, i2c_s_if.scl_oe);
   bufif0 (dut_sda, i2c_s_if.sda_out, i2c_s_if.sda_oe);
+  bufif0 (dut_scl, dut_scl_oe, dut_scl_o);
+  bufif0 (dut_sda, dut_sda_oe, dut_sda_o);
+  */
+  bufif0 (dut_scl, 1'b0, i2c_s_if.scl_out);
+  bufif0 (dut_sda, 1'b0, i2c_s_if.sda_out);
+//  bufif0 (dut_scl, i2c_s_if.scl_out, 1'b0);
+//  bufif0 (dut_sda, i2c_s_if.sda_out, 1'b0);
   bufif0 (dut_scl, dut_scl_o, dut_scl_oe);
   bufif0 (dut_sda, dut_sda_o, dut_sda_oe);
+//  bufif0 (dut_scl, dut_scl_oe, dut_scl_o);
+//  bufif0 (dut_sda, dut_sda_oe, dut_sda_o);
+
+//  assign dut_scl = dut_scl_oe & i2c_s_if.scl_out;
+//  assign dut_sda = dut_sda_oe & i2c_s_if.sda_out;
 
   assign i2c_s_if.scl = dut_scl;
   assign i2c_s_if.sda = dut_sda;
-  assign wb3_if.arst = 1'b1;
+  
+  pullup (dut_scl);
+  pullup (dut_sda);
 
   i2c_master_top dut ( .wb_clk_i(wb3_if.clk),
 						.wb_rst_i(wb3_if.rst),
@@ -64,11 +78,14 @@ module tb_top;
   end
 
 
-  always #100 clk = ~clk;
+  always #10 clk = ~clk;
   //always #((0.5/(`APB_CLK_FREQ_MHZ*1000000)) * 1s) clk_100MHz = ~clk_100MHz;
   initial begin
     rst = 1;
-    #1000 rst = 0;
+    wb3_if.arst = 1'b0;
+    repeat(50) @(posedge clk); 
+	rst = 0;
+    wb3_if.arst = 1'b1;
   end
 
 

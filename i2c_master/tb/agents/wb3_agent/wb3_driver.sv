@@ -1,7 +1,7 @@
 `ifndef WB3_DRIVER__SV
 `define WB3_DRIVER__SV
 
-`include "tb_defines.sv"
+//`include "tb_defines.sv"
 
 class wb3_driver extends uvm_driver #(wb3_transaction);
 

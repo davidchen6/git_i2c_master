@@ -10,8 +10,12 @@
 
 class wb3_sequencer extends uvm_sequencer #(wb3_transaction);
 
+  uvm_analysis_port #(bit[8:0]) m_ap;
+  reg_model     p_rm;
+
   function new(string name, uvm_component parent);
     super.new(name, parent);
+	m_ap = new("m_ap", this);
   endfunction
 
   `uvm_component_utils(wb3_sequencer)

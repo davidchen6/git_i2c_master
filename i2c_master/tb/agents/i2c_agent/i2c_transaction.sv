@@ -1,7 +1,7 @@
 `ifndef I2C_TRANSACTION__SV
 `define I2C_TRANSACTION__SV
 
-`include "tb_defines.sv"
+//`include "tb_defines.sv"
 class i2c_transaction extends uvm_sequence_item;
 
 //  logic psel;
