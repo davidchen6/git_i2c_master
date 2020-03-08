@@ -12,6 +12,7 @@ class case2_vseq extends uvm_sequence;
    
    virtual task body();
       wbMasterRxFrameSeq wb3_rx_seq;
+      iicSlaveFrameSeq i2c_slv_seq;
       //uvm_status_e   status;
       //uvm_reg_data_t value;
       if(starting_phase != null) 
@@ -19,12 +20,21 @@ class case2_vseq extends uvm_sequence;
          starting_phase.raise_objection(this);
       #1000;
       wb3_rx_seq = wbMasterRxFrameSeq::type_id::create("wb3_rx_seq");
-      wb3_rx_seq.randomize();
+      assert(wb3_rx_seq.randomize());
 	  wb3_rx_seq.m_iicAddress = `I2C_DEFAULT_SLAVE_ADDRESS;
 	  //wb3_rx_seq.m_byteNumber = 1;
 	  wb3_rx_seq.print();
-	  wb3_rx_seq.start(p_sequencer.p_wb3_sqr);
-      
+	  //
+	  i2c_slv_seq = iicSlaveFrameSeq::type_id::create("i2c_slv_seq");
+	  assert(i2c_slv_seq.randomize());
+	  i2c_slv_seq.m_iicAddress = `I2C_DEFAULT_SLAVE_ADDRESS;
+
+	  fork
+	  // start sequence.
+	    wb3_rx_seq.start(p_sequencer.p_wb3_sqr);
+        i2c_slv_seq.start(p_sequencer.p_i2c_slv1_sqr); 
+      join_any
+
       if(starting_phase != null) 
          starting_phase.drop_objection(this);
    endtask

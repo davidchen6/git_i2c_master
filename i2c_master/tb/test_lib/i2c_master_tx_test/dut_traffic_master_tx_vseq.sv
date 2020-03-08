@@ -24,7 +24,7 @@ function void iicDutTraffic_MasterTx_Vseq::randomizeSequences;
   if (m_masterSeq==null)
    `uvm_fatal(m_name, "Null handle for master sequence.")
   if (!m_masterSeq.randomize() with {
-                                m_frameLength==2;
+                                m_frameLength==3;
                                 m_relinquishBus==1;
                                     }
    )

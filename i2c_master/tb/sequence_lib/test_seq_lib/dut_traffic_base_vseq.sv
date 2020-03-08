@@ -45,10 +45,11 @@ task dut_traffic_base_vseq::body;
 
   //Randomize the m_masterSeq sequence.
   randomizeSequences;
+  m_masterSeq.print();
   m_masterSeq.start(m_dut_sequencer);
 
   m_interFrameDelay = $urandom_range(P_MAXINTERFRAMEDELAY_DUT,P_MININTERFRAMEDELAY_DUT);
-  #(m_interFrameDelay*m_i2c_slv_cfg.i2c_s_vif.m_sclClockPeriod);
+  #(m_interFrameDelay*m_i2c_slv1_cfg.vif.m_sclClockPeriod);
 
  end 
  

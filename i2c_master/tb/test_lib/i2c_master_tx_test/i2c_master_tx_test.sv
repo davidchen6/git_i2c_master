@@ -24,7 +24,7 @@ task iicMasterTxTest::run_phase(uvm_phase phase);
 
  i2c_test_base_vseq::type_id::set_type_override(iicTest_MasterTx_Vseq::get_type(),1);
  dut_traffic_base_vseq::type_id::set_type_override(iicDutTraffic_MasterTx_Vseq::get_type(),1);
- //iicXtTrafficBaseVseq::type_id::set_type_override(iicXtTraffic_MasterTx_Vseq::get_type(),1);
+ xt_traffic_base_vseq::type_id::set_type_override(iicXtTraffic_MasterTx_Vseq::get_type(),1);
 
  m_iicTestVseq = i2c_test_base_vseq::type_id::create("m_i2c_test_base_vseq");
 
@@ -34,6 +34,7 @@ task iicMasterTxTest::run_phase(uvm_phase phase);
   #P_TESTRUNIN;
   if (!m_iicTestVseq.randomize())
    `uvm_fatal(m_name, "Unable to randomize test.")
+  m_iicTestVseq.print();
   m_iicTestVseq.start(v_sqr);
 
   #P_TESTRUNOUT;

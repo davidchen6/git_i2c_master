@@ -12,18 +12,29 @@ class case1_vseq extends uvm_sequence;
    
    virtual task body();
       wbMasterTxFrameSeq wb3_tx_seq;
-      uvm_status_e   status;
-      uvm_reg_data_t value;
+      iicSlaveFrameSeq i2c_slv_seq;
+	  //uvm_status_e   status;
+      //uvm_reg_data_t value;
       if(starting_phase != null) 
       $display({"case1_vseq for: ", get_full_name()});
          starting_phase.raise_objection(this);
       #1000;
       wb3_tx_seq = wbMasterTxFrameSeq::type_id::create("wb3_tx_seq");
-      wb3_tx_seq.randomize();
+      assert(wb3_tx_seq.randomize());
 	  wb3_tx_seq.m_iicAddress = `I2C_DEFAULT_SLAVE_ADDRESS;
 	  wb3_tx_seq.m_byteNumber = 1;
-	  wb3_tx_seq.start(p_sequencer.p_wb3_sqr);
-      
+
+	  //
+	  i2c_slv_seq = iicSlaveFrameSeq::type_id::create("i2c_slv_seq");
+	  assert(i2c_slv_seq.randomize());
+	  i2c_slv_seq.m_iicAddress = `I2C_DEFAULT_SLAVE_ADDRESS;
+      //i2c_slv_seq.print();
+	  fork
+	    // start sequence.
+	    wb3_tx_seq.start(p_sequencer.p_wb3_sqr);
+        i2c_slv_seq.start(p_sequencer.p_i2c_slv1_sqr); 
+      join_any
+
       if(starting_phase != null) 
          starting_phase.drop_objection(this);
    endtask

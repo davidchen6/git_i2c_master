@@ -62,7 +62,7 @@ class case0_vseq extends uvm_sequence;
          starting_phase.raise_objection(this);
       #10000;
       dseq = case0_sequence::type_id::create("dseq");
-      dseq.start(p_sequencer.p_i2c_sqr);
+      dseq.start(p_sequencer.p_i2c_slv1_sqr);
       
       if(starting_phase != null) 
          starting_phase.drop_objection(this);

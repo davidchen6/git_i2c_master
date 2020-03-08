@@ -5,25 +5,26 @@
 class i2c_transaction extends uvm_sequence_item;
 
 //  logic psel;
-//  logic penable;
-  rand logic pwrite = 0;
-  randc logic [`ADDR_WIDTH-1:0] paddr = 0;
-  randc logic [`DATA_WIDTH-1:0] pwdata = 0;
-  logic [`DATA_WIDTH-1:0] prdata = 0;
+  rand e_i2c_direction direction_e;
+  rand logic[9:0] address;
+  //rand logic address_ack;
+  rand logic [7:0] data[MAXFRAMELENGTH];
+  rand int unsigned frame_length;
 //  logic pready;
 //  logic pslverr;
   `uvm_object_utils_begin(i2c_transaction)
-    `uvm_field_int(pwrite, UVM_ALL_ON)
-    `uvm_field_int(paddr, UVM_ALL_ON)
-    `uvm_field_int(pwdata, UVM_ALL_ON)
-    `uvm_field_int(prdata, UVM_ALL_ON)
+    `uvm_field_enum(e_i2c_direction, direction_e, UVM_ALL_ON)
+    `uvm_field_int(address, UVM_ALL_ON)
+    //`uvm_field_int(address_ack, UVM_ALL_ON)
+    `uvm_field_sarray_int(data, UVM_ALL_ON)
+    `uvm_field_int(frame_length, UVM_ALL_ON)
   `uvm_object_utils_end
 
   function new(string name = "i2c_transaction");
     super.new();
   endfunction
 
-//  constraint constr1{paddr[1:0]==0; };
+  constraint length_constr{ frame_length inside {[2:MAXFRAMELENGTH]}; };
 //  constraint constr2{paddr < `APB_SRAM_SIZE; };
 endclass: i2c_transaction
 

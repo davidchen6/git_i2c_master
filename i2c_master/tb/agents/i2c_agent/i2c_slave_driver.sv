@@ -7,7 +7,7 @@ class i2c_slave_driver extends uvm_driver#(i2c_transaction);
    i2c_common_methods  common_mthds;
    int                 number_of_clocks_for_t_hd_dat_max;
    logic [9:0]         address;
-   bit   [7:0]         data[int]; //associative array so it can be allocated on the fly
+   bit   [7:0]         data[MAXFRAMELENGTH]; //
    bit                 start_detection;
 
    uvm_analysis_port #(bit[8:0]) slv_ap;
@@ -23,10 +23,11 @@ class i2c_slave_driver extends uvm_driver#(i2c_transaction);
 
    virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!uvm_config_db#(virtual i2c_interface)::get(this, "", "i2c_vif", vif))
-         `uvm_fatal("i2c_slave_driver", "virtual interface must be set for vif!!!")
+//      if(!uvm_config_db#(virtual i2c_interface)::get(this, "", "i2c_vif", vif))
+//         `uvm_fatal("i2c_slave_driver", "virtual interface must be set for vif!!!")
 	  if ( cfg  == null ) `uvm_fatal(get_type_name(),  $sformatf("i2c cfg object is null!") )
 
+	  vif = cfg.vif;
 	  common_mthds = i2c_common_methods::type_id::create("common_mthds", this);
       common_mthds.vif = vif;
 	  slv_ap = new("slv_ap", this);
@@ -65,39 +66,31 @@ task i2c_slave_driver::run_phase(uvm_phase phase);
 	 forever slave_search_for_start_condition( .phase(phase) );
 	 forever slave_search_for_stop_condition(  .phase(phase) );
 	 forever begin
-	   fork
-	     begin //response to request thread
-		   thread_process[thread_number] = process::self();
-		   wait(start_detection_e.triggered);
-		   slave_address_is_to_this_slave(.address_is_for_slave(enable_slave));
+	   while (vif.rst === 1'b1) @(posedge vif.clk);
+       `uvm_info(get_type_name(),  $sformatf("Start to get seq"), UVM_HIGH )
+	   seq_item_port.get_next_item(req);
+	   cfg.slave_address = req.address;
+	   cfg.print();
+       data = req.data;
+       //`uvm_info(get_type_name(),  $psprintf("start_detection_e is : %d", start_detection_e.triggered), UVM_HIGH )
+	   wait(start_detection_e.triggered);
+	   $display("slave_address is : %h", cfg.slave_address);
+	   slave_address_is_to_this_slave(.address_is_for_slave(enable_slave));
+	   $display("slave_address is : %h", cfg.slave_address);
 
-		   if (enable_slave) begin
-		     slave_get_read_write( .transaction_direction(transaction_direction) );
-			 send_ack();
-			 slv_ap.write({1'b1, 8'b0});
+	   if (enable_slave) begin
+	     slave_get_read_write( .transaction_direction(transaction_direction) );
+	     send_ack();
+	     slv_ap.write({1'b1, 8'b0});
 
-			 case (transaction_direction)
-	           I2C_DIR_WRITE : slave_write_request();
-               I2C_DIR_READ  : slave_read_request();
-			   default   : `uvm_fatal(get_type_name(),  $sformatf("Slave read / write request unknown!") )
-			 endcase
-		   end
-		 end
-		 
-		 begin // start event is detected, wait for stop or repeated start to end this thread.
-		   //grab the current thread number since the thread number can increment if the response thread terminates naturally.		   //
-		   int wait_for_thread_number = thread_number;
-		   wait(start_detection_e.triggered);
-#1; //wait so start event is no longer triggered
-		   wait(stop_detection_e.triggered || start_detection_e.triggered);
-
-		   if(start_detection_e.triggered) phase.drop_objection(this); //continuous start only, stop already drops objection 
-		   if (thread_process[wait_for_thread_number].status != process::FINISHED) thread_process[wait_for_thread_number].kill();
-
-		 end
-	   join_any
-
-	   thread_number ++; // increment the thread number for next threads spawning
+	     case (transaction_direction)
+	       I2C_DIR_WRITE : slave_write_request();
+           I2C_DIR_READ  : slave_read_request();
+	       default   : `uvm_fatal(get_type_name(),  $sformatf("Slave read / write request unknown!") )
+	     endcase
+	   end
+	   seq_item_port.item_done();
+//	   seq_item_port.try_next_item(req); //if another item is ready process it now, monitor a continuous start
 	 end
    join
 
@@ -107,7 +100,7 @@ task i2c_slave_driver::slave_search_for_start_condition(uvm_phase phase);
    common_mthds.monitor_for_start_condition(.start_e(start_detection_e));
    if(start_detection_e.triggered) begin
       start_detection = 1'b1;
-      phase.raise_objection(this);
+      //phase.raise_objection(this);
       `uvm_info(get_type_name(),  $sformatf("Start detected"), UVM_HIGH )
    end
 endtask
@@ -119,7 +112,7 @@ task i2c_slave_driver::slave_search_for_stop_condition(uvm_phase phase);
      if(start_detection) begin // verify a start was triggered before lowering the objection
         `uvm_info(get_type_name(),  $sformatf("Start existed, drop objection"), UVM_FULL )
         start_detection = 1'b0;
-        phase.drop_objection(this);
+		//phase.drop_objection(this);
      end
   end
 endtask
@@ -136,7 +129,8 @@ task i2c_slave_driver::slave_address_is_to_this_slave(output logic address_is_fo
       @(posedge vif.scl);
       address = { address[8:0], vif.sda };
    end
-
+   
+   $display("received address is : %d", address);
    if (address === cfg.slave_address) address_is_for_slave = 1;
 
 endtask: slave_address_is_to_this_slave
@@ -161,7 +155,7 @@ task i2c_slave_driver::slave_write_request();
          @(posedge vif.scl);
          input_data = { input_data[6:0], vif.sda};
       end
-      data[address++] = input_data;
+      data[num_of_accesses] = input_data;
       send_ack();
 	  slv_ap.write({1'b0, input_data});
       num_of_accesses++;
@@ -172,17 +166,18 @@ endtask: slave_write_request
 
 //------------------------------------------------------------------------//
 task i2c_slave_driver::slave_read_request();
-   int       current_address   = this.address; // start of read address is the requested address on the i2c bus
+   //int       current_address   = this.address; // start of read address is the requested address on the i2c bus
+   int       current_address   = 0; // start of read address is the requested address on the i2c bus
    bit [7:0] data_to_transmit  = '0;
    bit       ack_from_master   = '0;
    `uvm_info(get_type_name(),  $sformatf("Slave read"), UVM_FULL )
 		  
    do begin
-      if (!data.exists(current_address)) begin
+    /*  if (!data.exists(current_address)) begin
          data[current_address] = $urandom_range(1 << 8); // data values are byte wide
          `uvm_info(get_type_name(),  $sformatf("Created a random value %0h for address %0h", data[current_address], current_address), UVM_HIGH )
       end
-							      
+	*/						      
       data_to_transmit = data[current_address];
       `uvm_info(get_type_name(),  $sformatf("transmitting read request data %0h", data_to_transmit), UVM_HIGH )
 									      

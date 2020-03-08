@@ -38,6 +38,7 @@ class i2c_cfg extends uvm_object;
     `uvm_field_enum(e_i2c_frequency_mode,frequency_mode_range, UVM_ALL_ON)
   `uvm_object_utils_end
 
+  virtual i2c_interface vif; // i2c interface.
   // default constraints which are good for both master and slave 
   // implementations. constraints are overridden by master/slave 
   // configuration classes and then updated according to the

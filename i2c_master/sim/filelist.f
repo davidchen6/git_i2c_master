@@ -17,6 +17,7 @@
 // include sequence library directory 
 +incdir+../tb/sequence_lib
 +incdir+../tb/sequence_lib/test_seq_lib
++incdir+../tb/sequence_lib/i2c_seq_lib
 +incdir+../tb/sequence_lib/wb3_seq_lib
 // include test library directory
 +incdir+../tb/test_lib

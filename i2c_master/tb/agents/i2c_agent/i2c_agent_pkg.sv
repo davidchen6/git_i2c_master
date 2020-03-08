@@ -30,12 +30,15 @@ package i2c_agent_pkg;
   `include "i2c_cfg.sv"
   `include "i2c_transaction.sv"
   `include "i2c_slave_cfg.sv"
+  `include "i2c_sequencer.sv"
   `include "i2c_common_methods.sv"
   `include "i2c_slave_driver.sv"
 //  `include "i2c_mstr_monitor.sv"
-  `include "i2c_sequencer.sv"
   `include "i2c_slave_addr.sv"
   `include "i2c_slave_agent.sv"
+  `include "i2c_master_cfg.sv"
+  `include "i2c_master_driver.sv"
+  `include "i2c_master_agent.sv"
 
 endpackage: i2c_agent_pkg
 `endif
