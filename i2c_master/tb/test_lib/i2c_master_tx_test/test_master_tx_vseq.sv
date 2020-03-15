@@ -26,10 +26,10 @@ function void iicTest_MasterTx_Vseq::randomizeSequences;
  if (!m_dutTrafficVseq.randomize with {m_numberOfFrames==1;}) 
   `uvm_fatal(m_name, "Failed to randomize the DUT traffic vseq.")
 
-// if (!m_xtTrafficVseq.randomize with {m_numberOfFrames==1;}) 
-//  `uvm_fatal(m_name, "Failed to randomize the cross traffic vseq.")
+ if (!m_xtTrafficVseq.randomize with {m_numberOfFrames==1;}) 
+  `uvm_fatal(m_name, "Failed to randomize the cross traffic vseq.")
 
-/*
+
  if (!m_iicSlaveTx1FrameSeq.randomize() with {
                                         m_relinquishBus==1;
                                         m_ackProbability==100;
@@ -62,7 +62,7 @@ function void iicTest_MasterTx_Vseq::randomizeSequences;
                                             }
  )
  `uvm_fatal(m_name, "Failed to randomize m_iicSlaveRx2FrameSeq.") 
-*/
+
 endfunction
 
 
@@ -72,8 +72,8 @@ function void iicTest_MasterTx_Vseq::setupMasterSeqList;
  m_dutMasterSeqsList.push_back(m_wbMasterTxFrameSeq);
  m_dutTrafficVseq.m_masterSeqsList = m_dutMasterSeqsList;
 
-// m_xtMasterSeqsList.push_back(m_iicMasterTxFrameSeq);
-// m_xtTrafficVseq.m_masterSeqsList = m_xtMasterSeqsList; 
+ m_xtMasterSeqsList.push_back(m_iicMasterTxFrameSeq);
+ m_xtTrafficVseq.m_masterSeqsList = m_xtMasterSeqsList; 
 
  
 endfunction
